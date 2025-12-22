@@ -7,3 +7,6 @@ Programa en Python que permite:
 
 Objetivo:
 Practicar fundamentos de Python creando una herramienta funcional.
+
+Las tareas se guardan automáticamente en un archivo de texto (tasks.txt),
+permitiendo que el programa recuerde la información entre ejecuciones.
