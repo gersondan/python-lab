@@ -1,100 +1,120 @@
-# Nombre del archivo donde se guardarán las tareas
-# Es una constante por convención (mayúsculas)
+# Importamos argparse, un módulo estándar de Python
+# Sirve para leer argumentos que el usuario pasa al ejecutar el programa
+# Ejemplo:
+#   python task_manager.py --list
+#   python task_manager.py --add "Estudiar Python"
+import argparse
+
+
+# Nombre del archivo donde se guardan las tareas
 FILE_NAME = "tasks.txt"
 
 
-# Función que carga las tareas desde el archivo
+# Función que carga las tareas desde el archivo de texto
 def load_tasks():
     try:
-        # Abrimos el archivo en modo lectura ("r")
-        # encoding="utf-8" permite usar tildes y caracteres especiales
+        # Abrimos el archivo en modo lectura
         with open(FILE_NAME, "r", encoding="utf-8") as file:
             
-            # file.readlines() devuelve una lista de líneas del archivo
+            # Leemos todas las líneas del archivo
             # Cada línea termina con "\n", por eso usamos strip()
-            # strip() elimina espacios y saltos de línea
+            # Esto devuelve una lista de tareas limpias
             return [line.strip() for line in file.readlines()]
     
-    # Si el archivo no existe, Python lanza este error
-    # En ese caso, devolvemos una lista vacía
+    # Si el archivo no existe, devolvemos una lista vacía
     except FileNotFoundError:
         return []
 
 
-# Función que guarda las tareas en el archivo
+# Función que guarda todas las tareas en el archivo
 def save_tasks(tasks):
-    # Abrimos el archivo en modo escritura ("w")
+    # Abrimos el archivo en modo escritura
     # Esto sobrescribe el contenido anterior
     with open(FILE_NAME, "w", encoding="utf-8") as file:
         
-        # Recorremos cada tarea de la lista
+        # Escribimos cada tarea en una línea
         for task in tasks:
-            # Escribimos la tarea en el archivo
-            # "\n" crea una nueva línea por cada tarea
             file.write(task + "\n")
 
 
-# Función que muestra el menú principal
-def show_menu():
-    print("\nGestor de Tareas")
-    print("1. Ver tareas")
-    print("2. Agregar tarea")
-    print("3. Salir")
-
-
 # Función que muestra las tareas en pantalla
-def show_tasks(tasks):
+def list_tasks(tasks):
     # Si la lista está vacía
     if not tasks:
-        print("No hay tareas aún.")
+        print("No hay tareas.")
     else:
-        # enumerate recorre la lista y genera un contador
-        # start=1 hace que el conteo sea humano (1, 2, 3...)
+        # enumerate genera un contador junto a cada tarea
+        # start=1 hace que el conteo sea más humano
         for i, task in enumerate(tasks, start=1):
             print(f"{i}. {task}")
 
 
 # Función que agrega una nueva tarea
-def add_task(tasks):
-    # Pedimos al usuario que escriba la tarea
-    task = input("Escribe la nueva tarea: ")
-    
-    # Agregamos la tarea al final de la lista
+def add_task(tasks, task):
+    # Agregamos la nueva tarea al final de la lista
     tasks.append(task)
     
-    # Guardamos inmediatamente la lista actualizada en el archivo
+    # Guardamos inmediatamente la lista actualizada
     save_tasks(tasks)
     
     # Confirmación visual
-    print("Tarea agregada y guardada.")
+    print("Tarea agregada.")
 
 
-# Cargamos las tareas desde el archivo al iniciar el programa
-# Si el archivo no existe, recibimos una lista vacía
-tasks = load_tasks()
+# Función principal del programa
+def main():
+    # Creamos el parser de argumentos
+    # description aparece cuando el usuario usa --help
+    parser = argparse.ArgumentParser(
+        description="Gestor de tareas en terminal"
+    )
 
+    # Argumento --list
+    # action="store_true" significa:
+    #   si el usuario escribe --list → args.list será True
+    #   si no lo escribe → args.list será False
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="Muestra todas las tareas"
+    )
 
-# Bucle principal del programa
-# Se ejecuta indefinidamente hasta que el usuario decida salir
-while True:
-    show_menu()
-    
-    # Capturamos la opción elegida por el usuario
-    option = input("Elige una opción: ")
+    # Argumento --add
+    # type=str indica que espera un texto
+    # Ejemplo:
+    #   python task_manager.py --add "Comprar pan"
+    parser.add_argument(
+        "--add",
+        type=str,
+        help="Agrega una nueva tarea"
+    )
 
-    # Opción para ver tareas
-    if option == "1":
-        show_tasks(tasks)
+    # parse_args() analiza lo que el usuario escribió en la terminal
+    # y lo convierte en un objeto con atributos
+    args = parser.parse_args()
 
-    # Opción para agregar una nueva tarea
-    elif option == "2":
-        add_task(tasks)
+    # Cargamos las tareas desde el archivo
+    tasks = load_tasks()
 
-    # Opción para salir del programa
-    elif option == "3":
-        print("Hasta luego.")
-        break  # Rompe el bucle y termina el programa
+    # Si el usuario usó --list
+    if args.list:
+        list_tasks(tasks)
 
-    # Cualquier otra entrada no es válida
+    # Si el usuario usó --add y pasó un texto
+    elif args.add:
+        add_task(tasks, args.add)
+
+    # Si no se pasó ningún argumento válido
     else:
-        print("Opción inválida.")
+        # Mostramos la ayuda automática de argparse
+        parser.print_help()
+
+
+# Este bloque asegura que main() solo se ejecute
+# cuando el archivo se ejecuta directamente
+# y no cuando se importa desde otro archivo
+if __name__ == "__main__":
+    main()
+# Este bloque asegura que main() solo se ejecute
+# cuando el archivo se ejecuta directamente
+# y no cuando se importa desde otro archivo
