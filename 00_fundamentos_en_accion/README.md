@@ -11,6 +11,8 @@ Practicar fundamentos de Python creando una herramienta funcional.
 Las tareas se guardan automáticamente en un archivo de texto (tasks.txt),
 permitiendo que el programa recuerde la información entre ejecuciones.
 
+Persistencia de datos
+
 Uso desde terminal
 
 Listar tareas:
@@ -18,3 +20,15 @@ python task_manager.py --list
 
 Agregar tarea:
 python task_manager.py --add "Nueva tarea"
+
+Instalación como comando
+
+Dar permisos:
+chmod +x tasks
+
+#Mover al PATH:
+#mv tasks ~/bin/
+Uso:
+tasks --list
+tasks --add "Nueva tarea"
+

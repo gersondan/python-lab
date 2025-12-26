@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Importamos argparse, un módulo estándar de Python
 # Sirve para leer argumentos que el usuario pasa al ejecutar el programa
 # Ejemplo:
