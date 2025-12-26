@@ -115,6 +115,3 @@ def main():
 # y no cuando se importa desde otro archivo
 if __name__ == "__main__":
     main()
-# Este bloque asegura que main() solo se ejecute
-# cuando el archivo se ejecuta directamente
-# y no cuando se importa desde otro archivo
