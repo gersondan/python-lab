@@ -36,3 +36,9 @@ Eliminar tareas:
 tasks --delete 1
 
 La numeración corresponde al orden mostrado con --list
+
+Persistencia con base de datos
+
+Las tareas se almacenan en una base de datos SQLite (tasks.db),
+permitiendo operaciones CRUD reales usando SQL.
+

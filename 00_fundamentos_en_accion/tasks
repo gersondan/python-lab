@@ -1,189 +1,162 @@
 #!/usr/bin/env python3
-# ↑ Shebang: le dice al sistema que este archivo se ejecuta con Python 3
+# ↑ Shebang: le dice al sistema operativo que este archivo
+#   debe ejecutarse usando Python 3.
+#   Gracias a esto puedes usarlo como comando: `tasks --list`
 
-# Importamos argparse, un módulo estándar de Python
-# Sirve para leer argumentos que el usuario pasa al ejecutar el programa
-# Ejemplo:
-#   python task_manager.py --list
-#   python task_manager.py --add "Estudiar Python"
 import argparse
+# ↑ Módulo estándar para manejar argumentos de línea de comandos
+#   (flags como --add, --list, etc.)
 
-# Nombre del archivo donde se guardan las tareas
-FILE_NAME = "tasks.txt"
+import sqlite3
+# ↑ Módulo estándar para trabajar con bases de datos SQLite
+#   No necesitas instalar nada extra
 
-# Códigos ANSI para colores en terminal
-GREEN = "\033[92m"     # Texto verde (éxito)
-RED = "\033[91m"       # Texto rojo (errores / eliminación)
-YELLOW = "\033[93m"    # Texto amarillo (advertencias)
-RESET = "\033[0m"      # Restablece el color normal
+# Nombre del archivo de base de datos
+DB_NAME = "tasks.db"
 
-# Función que carga las tareas desde el archivo de texto
-def load_tasks():
-    try:
-        # Abrimos el archivo en modo lectura
-        with open(FILE_NAME, "r", encoding="utf-8") as file:
-            
-            # Leemos todas las líneas del archivo
-            # Cada línea termina con "\n", por eso usamos strip()
-            # Esto devuelve una lista de tareas limpias
-            return [line.strip() for line in file.readlines()]
-    
-    # Si el archivo no existe, devolvemos una lista vacía
-    except FileNotFoundError:
-        return []
+# Códigos ANSI para colorear la salida en terminal
+GREEN = "\033[92m"   # Verde → éxito
+RED = "\033[91m"     # Rojo → error / eliminación
+YELLOW = "\033[93m"  # Amarillo → advertencias
+RESET = "\033[0m"    # Reset → vuelve al color normal
 
+def get_connection():
+    """
+    Crea y devuelve una conexión a la base de datos SQLite.
+    Cada llamada abre una nueva conexión.
+    """
+    return sqlite3.connect(DB_NAME)
 
-# Función que guarda todas las tareas en el archivo
-def save_tasks(tasks):
-    # Abrimos el archivo en modo escritura
-    # Esto sobrescribe el contenido anterior
-    with open(FILE_NAME, "w", encoding="utf-8") as file:
-        
-        # Escribimos cada tarea en una línea
-        for task in tasks:
-            file.write(task + "\n")
+def init_db():
+    """
+    Inicializa la base de datos.
+    Crea la tabla 'tasks' si no existe.
+    Se ejecuta cada vez que arranca el programa,
+    pero SQLite solo la crea una vez.
+    """
+    conn = get_connection()      # Abrimos conexión
+    cursor = conn.cursor()      # Creamos un cursor (ejecutor de SQL)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            description TEXT NOT NULL
+        )
+    """)
+    # ↑ SQL real:
+    # - id: número único automático
+    # - description: texto obligatorio
 
-# Función que muestra las tareas en pantalla
-def list_tasks(tasks):
-    # Si la lista está vacía
-    if not tasks:
+    conn.commit()               # Guardamos cambios
+    conn.close()                # Cerramos conexión (muy importante)
+
+def list_tasks():
+    """
+    Muestra todas las tareas almacenadas en la base de datos.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, description FROM tasks")
+    # ↑ Consulta SQL: trae todas las tareas
+
+    rows = cursor.fetchall()
+    # ↑ Convierte el resultado en una lista de tuplas:
+    #   [(id, description), (id, description), ...]
+
+    conn.close()
+
+    if not rows:
+        # Si no hay resultados
         print(f"{YELLOW}No hay tareas.{RESET}")
     else:
-        # enumerate genera un contador junto a cada tarea
-        # start=1 hace que el conteo sea más humano
-        for i, task in enumerate(tasks, start=1):
-            print(f"{GREEN}{i}.{RESET} {task}")
+        # Recorremos cada fila
+        for task_id, desc in rows:
+            # task_id → id de la tarea
+            # desc    → descripción
+            print(f"{GREEN}{task_id}.{RESET} {desc}")
 
+def add_task(description):
+    """
+    Agrega una nueva tarea a la base de datos.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
 
-# Función que agrega una nueva tarea
-def add_task(tasks, task):
-    # Agregamos la nueva tarea al final de la lista
-    tasks.append(task)
-    
-    # Guardamos inmediatamente la lista actualizada
-    save_tasks(tasks)
-    
-    # Confirmación visual
+    cursor.execute(
+        "INSERT INTO tasks (description) VALUES (?)",
+        (description,)
+    )
+    # ↑ Uso de parámetros (?) evita inyección SQL
+    #   MUY importante para seguridad
+
+    conn.commit()
+    conn.close()
+
     print(f"{GREEN}Tarea agregada.{RESET}")
 
-def delete_task(tasks, index):
+def delete_task(task_id):
     """
-    Elimina una tarea según su número (1, 2, 3, ...)
+    Elimina una tarea por su ID.
     """
-    try:
-        # Restamos 1 porque las listas empiezan en 0
-        removed = tasks.pop(index - 1)
-        save_tasks(tasks)
-        print(f"{RED}Tarea eliminada:{RESET} {removed}")
-    except IndexError:
-        # Si el número no existe en la lista
-        print(f"{RED}Número de tarea inválido.{RESET}")
+    conn = get_connection()
+    cursor = conn.cursor()
 
-def update_task(tasks, index, new_text):
-    """
-    Actualiza el texto de una tarea existente.
-    
-    index: número de tarea (1, 2, 3, ...)
-    new_text: nuevo contenido de la tarea
-    """
-    try:
-        # Convertimos el número del usuario al índice real de la lista
-        old_task = tasks[index - 1]
-
-        # Reemplazamos la tarea antigua por la nueva
-        tasks[index - 1] = new_text
-
-        # Guardamos los cambios en el archivo
-        save_tasks(tasks)
-
-        print(
-            f"{GREEN}Tarea actualizada:{RESET} "
-            f"'{old_task}' → '{new_text}'"
-        )
-
-    except IndexError:
-        # Si el número no corresponde a ninguna tarea
-        print(f"{RED}Número de tarea inválido.{RESET}")
-        
-
-# Función principal del programa
-def main():
-    # Creamos el parser de argumentos
-    # description aparece cuando el usuario usa --help
-    parser = argparse.ArgumentParser(
-        description="Gestor de tareas en terminal"
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (task_id,)
     )
+    # ↑ Borra la tarea cuyo id coincide
 
-    # Argumento --list
-    # action="store_true" significa:
-    #   si el usuario escribe --list → args.list será True
-    #   si no lo escribe → args.list será False
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="Muestra todas las tareas"
-    )
-
-    # Argumento --add
-    # type=str indica que espera un texto
-    # Ejemplo:
-    #   python task_manager.py --add "Comprar pan"
-    parser.add_argument(
-        "--add",
-        type=str,
-        help="Agrega una nueva tarea"
-    )
-
-# Argumento para eliminar una tarea por número
-    parser.add_argument(
-        "--delete",
-        type=int,
-        help="Elimina una tarea por su número"
-    )
-    parser.add_argument(
-    "--update",
-    nargs=2,
-    metavar=("NUMERO", "NUEVO_TEXTO"),
-    help="Actualiza una tarea existente"
-)
-
-
-    # parse_args() analiza lo que el usuario escribió en la terminal
-    # y lo convierte en un objeto con atributos
-    args = parser.parse_args()
-
-    # Cargamos las tareas desde el archivo
-    tasks = load_tasks()
-
-    # Si el usuario usó --list
-    if args.list:
-        list_tasks(tasks)
-
-    # Si el usuario usó --add y pasó un texto
-    elif args.add:
-        add_task(tasks, args.add)
-
-    elif args.delete:
-        delete_task(tasks, args.delete)
-
-    elif args.update:
-    # args.update[0] → número de tarea (string)
-    # args.update[1] → nuevo texto
-        update_task(
-            tasks,
-            int(args.update[0]),   # Convertimos a entero
-            args.update[1]
-    )
-
-    # Si no se pasó ningún argumento válido
+    if cursor.rowcount == 0:
+        # Si no se borró ninguna fila
+        print(f"{RED}ID inválido.{RESET}")
     else:
-        # Mostramos la ayuda automática de argparse
+        print(f"{RED}Tarea eliminada.{RESET}")
+
+    conn.commit()
+    conn.close()
+
+def main():
+    """
+    Punto de entrada principal del programa.
+    Coordina base de datos, argumentos y acciones.
+    """
+    init_db()
+    # ↑ Asegura que la base de datos y la tabla existan
+
+    parser = argparse.ArgumentParser(
+        description="Gestor de tareas con SQLite"
+    )
+    # ↑ Define el programa y su descripción
+
+    parser.add_argument("--list", action="store_true")
+    # ↑ Flag booleano: si aparece --list → True
+
+    parser.add_argument("--add", type=str)
+    # ↑ Flag que recibe un texto:
+    #   --add "Nueva tarea"
+
+    parser.add_argument("--delete", type=int)
+    # ↑ Flag que recibe un número:
+    #   --delete 3
+
+    args = parser.parse_args()
+    # ↑ Procesa los argumentos escritos en la terminal
+
+    # Lógica principal:
+    if args.list:
+        list_tasks()
+    elif args.add:
+        add_task(args.add)
+    elif args.delete:
+        delete_task(args.delete)
+    else:
         parser.print_help()
+        # ↑ Si no se pasó ningún argumento, muestra ayuda
 
-
-# Este bloque asegura que main() solo se ejecute
-# cuando el archivo se ejecuta directamente
-# y no cuando se importa desde otro archivo
 if __name__ == "__main__":
     main()
+    # ↑ Garantiza que main() solo se ejecute
+    #   cuando este archivo se corre directamente,
+    #   no cuando se importa como módulo
