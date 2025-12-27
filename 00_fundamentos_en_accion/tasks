@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ↑ Shebang: le dice al sistema que este archivo se ejecuta con Python 3
 
 # Importamos argparse, un módulo estándar de Python
 # Sirve para leer argumentos que el usuario pasa al ejecutar el programa
@@ -7,10 +8,14 @@
 #   python task_manager.py --add "Estudiar Python"
 import argparse
 
-
 # Nombre del archivo donde se guardan las tareas
 FILE_NAME = "tasks.txt"
 
+# Códigos ANSI para colores en terminal
+GREEN = "\033[92m"     # Texto verde (éxito)
+RED = "\033[91m"       # Texto rojo (errores / eliminación)
+YELLOW = "\033[93m"    # Texto amarillo (advertencias)
+RESET = "\033[0m"      # Restablece el color normal
 
 # Función que carga las tareas desde el archivo de texto
 def load_tasks():
@@ -43,12 +48,12 @@ def save_tasks(tasks):
 def list_tasks(tasks):
     # Si la lista está vacía
     if not tasks:
-        print("No hay tareas.")
+        print(f"{YELLOW}No hay tareas.{RESET}")
     else:
         # enumerate genera un contador junto a cada tarea
         # start=1 hace que el conteo sea más humano
         for i, task in enumerate(tasks, start=1):
-            print(f"{i}. {task}")
+            print(f"{GREEN}{i}.{RESET} {task}")
 
 
 # Función que agrega una nueva tarea
@@ -60,8 +65,20 @@ def add_task(tasks, task):
     save_tasks(tasks)
     
     # Confirmación visual
-    print("Tarea agregada.")
+    print(f"{GREEN}Tarea agregada.{RESET}")
 
+def delete_task(tasks, index):
+    """
+    Elimina una tarea según su número (1, 2, 3, ...)
+    """
+    try:
+        # Restamos 1 porque las listas empiezan en 0
+        removed = tasks.pop(index - 1)
+        save_tasks(tasks)
+        print(f"{RED}Tarea eliminada:{RESET} {removed}")
+    except IndexError:
+        # Si el número no existe en la lista
+        print(f"{RED}Número de tarea inválido.{RESET}")
 
 # Función principal del programa
 def main():
@@ -91,6 +108,13 @@ def main():
         help="Agrega una nueva tarea"
     )
 
+# Argumento para eliminar una tarea por número
+    parser.add_argument(
+        "--delete",
+        type=int,
+        help="Elimina una tarea por su número"
+    )
+
     # parse_args() analiza lo que el usuario escribió en la terminal
     # y lo convierte en un objeto con atributos
     args = parser.parse_args()
@@ -105,6 +129,9 @@ def main():
     # Si el usuario usó --add y pasó un texto
     elif args.add:
         add_task(tasks, args.add)
+
+    elif args.delete:
+        delete_task(tasks, args.delete)
 
     # Si no se pasó ningún argumento válido
     else:

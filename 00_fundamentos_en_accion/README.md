@@ -32,3 +32,7 @@ Uso:
 tasks --list
 tasks --add "Nueva tarea"
 
+Eliminar tareas:
+tasks --delete 1
+
+La numeración corresponde al orden mostrado con --list
