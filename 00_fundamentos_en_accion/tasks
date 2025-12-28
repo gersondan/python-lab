@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# ↑ Shebang: le dice al sistema operativo que este archivo
+#   Shebang: le dice al sistema operativo que este archivo
 #   debe ejecutarse usando Python 3.
 #   Gracias a esto puedes usarlo como comando: `tasks --list`
 
 import argparse
-# ↑ Módulo estándar para manejar argumentos de línea de comandos
+#   Módulo estándar para manejar argumentos de línea de comandos
 #   (flags como --add, --list, etc.)
 
 import sqlite3
-# ↑ Módulo estándar para trabajar con bases de datos SQLite
+#   Módulo estándar para trabajar con bases de datos SQLite
 #   No necesitas instalar nada extra
 
 # Nombre del archivo de base de datos
@@ -43,7 +43,7 @@ def init_db():
             description TEXT NOT NULL
         )
     """)
-    # ↑ SQL real:
+    #   SQL real:
     # - id: número único automático
     # - description: texto obligatorio
 
@@ -58,10 +58,10 @@ def list_tasks():
     cursor = conn.cursor()
 
     cursor.execute("SELECT id, description FROM tasks")
-    # ↑ Consulta SQL: trae todas las tareas
+    #   Consulta SQL: trae todas las tareas
 
     rows = cursor.fetchall()
-    # ↑ Convierte el resultado en una lista de tuplas:
+    #   Convierte el resultado en una lista de tuplas:
     #   [(id, description), (id, description), ...]
 
     conn.close()
@@ -87,7 +87,7 @@ def add_task(description):
         "INSERT INTO tasks (description) VALUES (?)",
         (description,)
     )
-    # ↑ Uso de parámetros (?) evita inyección SQL
+    #   Uso de parámetros (?) evita inyección SQL
     #   MUY importante para seguridad
 
     conn.commit()
@@ -106,7 +106,7 @@ def delete_task(task_id):
         "DELETE FROM tasks WHERE id = ?",
         (task_id,)
     )
-    # ↑ Borra la tarea cuyo id coincide
+    #   Borra la tarea cuyo id coincide
 
     if cursor.rowcount == 0:
         # Si no se borró ninguna fila
@@ -117,32 +117,59 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
 
+def update_task(task_id, new_description):
+    """
+    Actualiza el texto de una tarea existente.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE tasks SET description = ? WHERE id = ?",
+        (new_description, task_id)
+    )
+
+    if cursor.rowcount == 0:
+        print(f"{RED}ID inválido. Nada fue actualizado.{RESET}")
+    else:
+        print(f"{GREEN}Tarea actualizada.{RESET}")
+
+    conn.commit()
+    conn.close()
+
 def main():
     """
     Punto de entrada principal del programa.
     Coordina base de datos, argumentos y acciones.
     """
     init_db()
-    # ↑ Asegura que la base de datos y la tabla existan
+    #   Asegura que la base de datos y la tabla existan
 
     parser = argparse.ArgumentParser(
         description="Gestor de tareas con SQLite"
     )
-    # ↑ Define el programa y su descripción
+    #   Define el programa y su descripción
 
     parser.add_argument("--list", action="store_true")
-    # ↑ Flag booleano: si aparece --list → True
+    #   Flag booleano: si aparece --list → True
 
     parser.add_argument("--add", type=str)
-    # ↑ Flag que recibe un texto:
+    #   Flag que recibe un texto:
     #   --add "Nueva tarea"
 
     parser.add_argument("--delete", type=int)
-    # ↑ Flag que recibe un número:
+    #   Flag que recibe un número:
     #   --delete 3
+    
+    parser.add_argument(
+    "--update",
+    nargs=2,
+    metavar=("ID", "TEXTO"),
+    help="Actualiza una tarea existente"
+    )
 
     args = parser.parse_args()
-    # ↑ Procesa los argumentos escritos en la terminal
+    #   Procesa los argumentos escritos en la terminal
 
     # Lógica principal:
     if args.list:
@@ -151,12 +178,16 @@ def main():
         add_task(args.add)
     elif args.delete:
         delete_task(args.delete)
+    elif args.update:
+        task_id = int(args.update[0])
+        new_text = args.update[1]
+        update_task(task_id, new_text)
     else:
         parser.print_help()
-        # ↑ Si no se pasó ningún argumento, muestra ayuda
+        #   Si no se pasó ningún argumento, muestra ayuda
 
 if __name__ == "__main__":
     main()
-    # ↑ Garantiza que main() solo se ejecute
+    #   Garantiza que main() solo se ejecute
     #   cuando este archivo se corre directamente,
     #   no cuando se importa como módulo
